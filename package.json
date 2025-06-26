@@ -1,0 +1,23 @@
+{
+  "name": "weatherguard-ai",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "db:migrate": "pnpm --filter database migrate",
+    "db:seed": "pnpm --filter database seed"
+  },
+  "devDependencies": {
+    "turbo": "^1.11.3",
+    "@types/node": "^20.11.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
