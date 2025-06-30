@@ -1,0 +1,18 @@
+name = "weatherguard-worker"
+main = "src/index.ts"
+compatibility_date = "2023-12-01"
+
+[env.development]
+kv_namespaces = [
+  { binding = "METADATA_KV", id = "dev_metadata_kv", preview_id = "dev_metadata_kv" }
+]
+
+[env.production]
+kv_namespaces = [
+  { binding = "METADATA_KV", id = "prod_metadata_kv" }
+]
+
+[[kv_namespaces]]
+binding = "METADATA_KV"
+id = "weatherguard_metadata"
+preview_id = "weatherguard_metadata_preview"
