@@ -40,3 +40,4 @@ coverage/
 .wrangler/
 syncfusion-license.txt
 .npmrc
+.dev.vars
