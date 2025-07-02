@@ -10,14 +10,14 @@
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "db:migrate": "pnpm --filter database migrate",
-    "db:seed": "pnpm --filter database seed"
+    "db:seed": "pnpm --filter database seed",
+    "pre_dev": "npx syncfusion-license activate"
   },
   "devDependencies": {
-    "turbo": "^1.11.3",
-    "@types/node": "^20.11.0"
+    "@biomejs/biome": "1.9.4",
+    "turbo": "^2.4.4"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
+    "node": ">=24.0.0"
   }
 }

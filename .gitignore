@@ -21,6 +21,7 @@ obj/
 .env
 .env.local
 .env.*.local
+appsettings.Development.json
 
 # Logs
 *.log
@@ -37,3 +38,5 @@ coverage/
 # Turbo
 .turbo/
 .wrangler/
+syncfusion-license.txt
+.npmrc

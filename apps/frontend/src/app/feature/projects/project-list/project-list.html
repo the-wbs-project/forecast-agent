@@ -1,0 +1,88 @@
+<div class="container-fluid mt-5 pt-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Projects</h3>
+            <div>
+              <button class="btn btn-primary me-2" routerLink="/projects/create">
+                <i class="bi bi-plus-circle"></i> New Project
+              </button>
+              <button class="btn btn-secondary" routerLink="/projects/import">
+                <i class="bi bi-upload"></i> Import Project
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          @if (projectService.loading()) {
+            <div class="text-center py-5">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          }
+          
+          @if (projectService.error()) {
+            <div class="alert alert-danger" role="alert">
+              {{ projectService.error() }}
+            </div>
+          }
+          
+          @if (!projectService.loading() && projectService.projects().length > 0) {
+            <ejs-grid 
+              [dataSource]="projectService.projects()" 
+              [allowPaging]="true" 
+              [pageSettings]="pageSettings"
+              [allowSorting]="true"
+              [allowFiltering]="true"
+              height="400">
+              <e-columns>
+                <e-column field="name" headerText="Project Name" width="200">
+                  <ng-template #template let-data>
+                    <a [routerLink]="['/projects', data.id]" class="text-decoration-none">
+                      {{ data.name }}
+                    </a>
+                  </ng-template>
+                </e-column>
+                <e-column field="description" headerText="Description" width="250"></e-column>
+                <e-column field="status" headerText="Status" width="120">
+                  <ng-template #template let-data>
+                    <span [class]="getStatusClass(data.status)">
+                      {{ data.status }}
+                    </span>
+                  </ng-template>
+                </e-column>
+                <e-column field="startDate" headerText="Start Date" width="120" type="date" format="yMd"></e-column>
+                <e-column field="endDate" headerText="End Date" width="120" type="date" format="yMd"></e-column>
+                <e-column field="budget" headerText="Budget" width="120" format="C2"></e-column>
+                <e-column field="location" headerText="Location" width="150"></e-column>
+                <e-column headerText="Actions" width="120" textAlign="Center">
+                  <ng-template #template let-data>
+                    <button class="btn btn-sm btn-primary me-1" [routerLink]="['/projects', data.id, 'edit']">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" (click)="confirmDelete(data.id)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </ng-template>
+                </e-column>
+              </e-columns>
+            </ejs-grid>
+          }
+          
+          @if (!projectService.loading() && projectService.projects().length === 0) {
+            <div class="text-center py-5">
+              <i class="bi bi-folder-x display-1 text-muted"></i>
+              <p class="mt-3 text-muted">No projects found. Create your first project to get started.</p>
+              <button class="btn btn-primary mt-2" routerLink="/projects/create">
+                <i class="bi bi-plus-circle"></i> Create Project
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

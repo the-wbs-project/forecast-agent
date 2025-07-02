@@ -1,0 +1,43 @@
+{
+  "name": "weatherguard-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2023-12-01",
+  "kv_namespaces": [
+    {
+      "binding": "METADATA_KV",
+      "id": "weatherguard_metadata",
+      "preview_id": "weatherguard_metadata_preview"
+    }
+  ],
+  "env": {
+    "development": {
+      "kv_namespaces": [
+        {
+          "binding": "METADATA_KV",
+          "id": "dev_metadata_kv",
+          "preview_id": "dev_metadata_kv"
+        }
+      ],
+      "vars": {
+        "DATADOG_ENV": "development",
+        "DATADOG_HOST": "localhost:88"
+      }
+    },
+    "production": {
+      "kv_namespaces": [
+        {
+          "binding": "METADATA_KV",
+          "id": "prod_metadata_kv"
+        }
+      ],
+      "vars": {
+        "DATADOG_ENV": "production",
+        "DATADOG_HOST": "forecast-agent.com"
+      }
+    }
+  },
+	"dev": {
+		"port": 88,
+		"ip": "*"
+	}
+}

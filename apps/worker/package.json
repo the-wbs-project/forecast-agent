@@ -1,5 +1,5 @@
 {
-  "name": "weatherguard-worker",
+  "name": "@pme/agent/worker",
   "version": "1.0.0",
   "description": "WeatherGuard Cloudflare Worker with Hono",
   "main": "src/index.ts",

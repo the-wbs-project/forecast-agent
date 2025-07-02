@@ -9,9 +9,15 @@ import {
   KVProjectDataService,
   KVTaskDataService,
   KVWeatherDataService,
+  DataDogService,
+  HttpLogger,
+  Fetcher,
+  OpenWeatherMapService,
+  WeatherGuardApiService,
 } from './services';
 import { AUTH_ROUTES, PROJECTS_ROUTES, TASKS_ROUTES, WEATHER_ROUTES } from './routes';
 import { authenticateUser } from './middleware/auth';
+import { ddLogger } from './middleware/logger';
 
 const app = new Hono<{ E: Env; Variables: Variables }>();
 
@@ -22,19 +28,39 @@ app.use('*', async (ctx, next) => {
   const kvService = createKVService(env.METADATA_KV);
   const authDataService = new KVAuthDataService(kvService);
   const authService = new AuthService(authDataService, env.JWT_SECRET);
-  const projectService = new KVProjectDataService(kvService);
-  const taskService = new KVTaskDataService(kvService);
-  const weatherService = new KVWeatherDataService(kvService);
+  
+  // Initialize API service for fallback
+  const weatherGuardApiService = env.API_BASE_URL 
+    ? new WeatherGuardApiService(env.API_BASE_URL, env.API_TOKEN)
+    : undefined;
+  
+  // Initialize data services with API fallback
+  const projectService = new KVProjectDataService(kvService, weatherGuardApiService);
+  const taskService = new KVTaskDataService(kvService, weatherGuardApiService);
+  const weatherService = new KVWeatherDataService(kvService, weatherGuardApiService);
+  
+  const datadog = new DataDogService(env);
+  const loggerService = new HttpLogger(ctx);
+  const fetcher = new Fetcher(loggerService);
+  const weatherApiService = env.OPENWEATHER_API_KEY 
+    ? new OpenWeatherMapService(env.OPENWEATHER_API_KEY, fetcher)
+    : null;
 
   ctx.set('kvService', kvService);
   ctx.set('authService', authService);
   ctx.set('projectService', projectService);
   ctx.set('taskService', taskService);
   ctx.set('weatherService', weatherService);
+  ctx.set('datadog', datadog);
+  ctx.set('logger', loggerService);
+  ctx.set('fetcher', fetcher);
+  ctx.set('weatherApiService', weatherApiService as any);
+  ctx.set('weatherGuardApiService', weatherGuardApiService);
 
   await next();
 });
 app.use('*', logger());
+app.use('*', ddLogger);
 app.use('*', cors({
   origin: ['http://localhost:3000', 'http://localhost:5173'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

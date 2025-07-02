@@ -1,0 +1,24 @@
+:host {
+  display: block;
+}
+
+.upload-area {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.e-upload {
+  border: none;
+}
+
+.e-upload .e-upload-drag-hover {
+  border: 2px dashed #0d6efd;
+  background-color: #e7f1ff;
+}

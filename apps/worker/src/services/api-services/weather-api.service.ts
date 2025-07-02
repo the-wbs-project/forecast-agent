@@ -1,4 +1,5 @@
 import { WeatherForecastDto } from '../../dto';
+import type { Fetcher } from '../fetcher.service';
 
 export interface WeatherApiService {
   getForecast(latitude: number, longitude: number, days: number): Promise<WeatherForecastDto[]>;
@@ -6,10 +7,10 @@ export interface WeatherApiService {
 }
 
 export class OpenWeatherMapService implements WeatherApiService {
-  constructor(private apiKey: string) { }
+  constructor(private apiKey: string, private fetcher: Fetcher) { }
 
   async getForecast(latitude: number, longitude: number, days: number): Promise<WeatherForecastDto[]> {
-    const response = await fetch(
+    const response = await this.fetcher.fetch(
       `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${this.apiKey}&units=metric&cnt=${days * 8}` // 8 forecasts per day (3-hour intervals)
     );
 
@@ -66,7 +67,7 @@ export class OpenWeatherMapService implements WeatherApiService {
   }
 
   async getCurrentWeather(latitude: number, longitude: number): Promise<WeatherForecastDto> {
-    const response = await fetch(
+    const response = await this.fetcher.fetch(
       `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${this.apiKey}&units=metric`
     );
 
@@ -99,9 +100,11 @@ export class OpenWeatherMapService implements WeatherApiService {
 }
 
 export class WeatherGovService implements WeatherApiService {
+  constructor(private fetcher: Fetcher) { }
+
   async getForecast(latitude: number, longitude: number, days: number): Promise<WeatherForecastDto[]> {
     // Get grid point first
-    const pointResponse = await fetch(
+    const pointResponse = await this.fetcher.fetch(
       `https://api.weather.gov/points/${latitude},${longitude}`
     );
 
@@ -113,7 +116,7 @@ export class WeatherGovService implements WeatherApiService {
     const forecastUrl = pointData.properties.forecast;
 
     // Get forecast
-    const forecastResponse = await fetch(forecastUrl);
+    const forecastResponse = await this.fetcher.fetch(forecastUrl);
 
     if (!forecastResponse.ok) {
       throw new Error(`Weather.gov forecast error: ${forecastResponse.statusText}`);

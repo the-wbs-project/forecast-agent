@@ -6,6 +6,8 @@ using System.Text;
 using Serilog;
 using WeatherGuard.Api.Filters;
 using WeatherGuard.Api.Middleware;
+using WeatherGuard.Api.Configuration;
+using WeatherGuard.Api.Services;
 using WeatherGuard.Core.Interfaces;
 using WeatherGuard.Infrastructure.Data;
 using WeatherGuard.Infrastructure.Services;
@@ -29,6 +31,11 @@ builder.Services.AddDbContext<WeatherGuardDbContext>(options =>
 // Add Repository and Unit of Work
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Add Datadog Configuration and Service
+builder.Services.AddSingleton<IDatadogConfig>(provider => 
+    new DatadogConfig(builder.Configuration as IConfigurationRoot ?? throw new InvalidOperationException("Configuration not available")));
+builder.Services.AddSingleton<DatadogService>();
 
 // Add Services
 builder.Services.AddScoped<IProjectService, ProjectService>();
@@ -55,7 +62,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured")))
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured - please set in appsettings.Development.json")))
         };
     });
 
@@ -156,6 +163,7 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<DatadogLoggingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

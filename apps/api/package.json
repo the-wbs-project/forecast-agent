@@ -1,0 +1,11 @@
+{
+	"name": "@pme/agent/api",
+	"version": "0.1.0",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"build": "dotnet build",
+		"dev": "dotnet watch run",
+		"check-types": "dotnet build"
+	}
+}

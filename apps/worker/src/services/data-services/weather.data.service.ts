@@ -1,5 +1,6 @@
 import { KVService } from './kv.service';
 import { WeatherRiskAnalysisDto, WeatherForecastDto, PagedResult, PaginationQuery } from '../dto';
+import { WeatherGuardApiService } from '../api-services/external-api.service';
 
 export interface WeatherDataService {
   getAnalysisById(analysisId: string): Promise<WeatherRiskAnalysisDto | null>;
@@ -13,7 +14,10 @@ export interface WeatherDataService {
 }
 
 export class KVWeatherDataService implements WeatherDataService {
-  constructor(private kvService: KVService) {}
+  constructor(
+    private kvService: KVService,
+    private apiService?: WeatherGuardApiService
+  ) {}
 
   private getAnalysisKey(analysisId: string): string {
     return `weather_analysis:${analysisId}`;
@@ -32,34 +36,72 @@ export class KVWeatherDataService implements WeatherDataService {
   }
 
   async getAnalysisById(analysisId: string): Promise<WeatherRiskAnalysisDto | null> {
-    return await this.kvService.get<WeatherRiskAnalysisDto>(this.getAnalysisKey(analysisId));
+    try {
+      // Try KV first
+      let analysis = await this.kvService.get<WeatherRiskAnalysisDto>(this.getAnalysisKey(analysisId));
+      
+      if (!analysis && this.apiService) {
+        // Fallback to API - note: WeatherGuardApiService doesn't have getAnalysisById
+        // This would need to be implemented in the API service if needed
+        console.warn(`Weather analysis ${analysisId} not found in KV and API fallback not implemented`);
+      }
+      
+      return analysis;
+    } catch (error) {
+      // On any error, clear KV cache to ensure consistency
+      await this.clearAnalysisCache(analysisId);
+      throw error;
+    }
   }
 
   async getAnalysesByProject(projectId: string, query?: PaginationQuery): Promise<PagedResult<WeatherRiskAnalysisDto>> {
-    const pageNumber = query?.pageNumber || 1;
-    const pageSize = query?.pageSize || 10;
-    
-    const analysisListResult = await this.kvService.list(`weather_analysis:project:${projectId}:`);
-    const analysisIds = analysisListResult.keys.map(key => key.name.split(':').pop()!);
-    
-    const totalCount = analysisIds.length;
-    const totalPages = Math.ceil(totalCount / pageSize);
-    const startIndex = (pageNumber - 1) * pageSize;
-    const paginatedIds = analysisIds.slice(startIndex, startIndex + pageSize);
-    
-    const analyses = await Promise.all(
-      paginatedIds.map(id => this.getAnalysisById(id))
-    );
-    
-    const validAnalyses = analyses.filter((a): a is WeatherRiskAnalysisDto => a !== null);
-    
-    return {
-      items: validAnalyses,
-      totalCount,
-      pageNumber,
-      pageSize,
-      totalPages
-    };
+    try {
+      const pageNumber = query?.pageNumber || 1;
+      const pageSize = query?.pageSize || 10;
+      
+      // Try KV first
+      const analysisListResult = await this.kvService.list(`weather_analysis:project:${projectId}:`);
+      let analysisIds = analysisListResult.keys.map(key => key.name.split(':').pop()!);
+      
+      // If no data in KV and API service available, try API fallback
+      if (analysisIds.length === 0 && this.apiService) {
+        try {
+          const apiAnalyses = await this.apiService.getWeatherAnalyses(projectId, query);
+          // Cache API results in KV
+          if (apiAnalyses && Array.isArray(apiAnalyses.items)) {
+            for (const analysis of apiAnalyses.items) {
+              await this.createAnalysis(analysis);
+            }
+            analysisIds = apiAnalyses.items.map(a => a.id);
+          }
+        } catch (apiError) {
+          console.warn(`API fallback failed for project ${projectId} weather analyses:`, apiError);
+        }
+      }
+      
+      const totalCount = analysisIds.length;
+      const totalPages = Math.ceil(totalCount / pageSize);
+      const startIndex = (pageNumber - 1) * pageSize;
+      const paginatedIds = analysisIds.slice(startIndex, startIndex + pageSize);
+      
+      const analyses = await Promise.all(
+        paginatedIds.map(id => this.getAnalysisById(id))
+      );
+      
+      const validAnalyses = analyses.filter((a): a is WeatherRiskAnalysisDto => a !== null);
+      
+      return {
+        items: validAnalyses,
+        totalCount,
+        pageNumber,
+        pageSize,
+        totalPages
+      };
+    } catch (error) {
+      // Clear cache on errors
+      await this.clearProjectAnalysesCache(projectId);
+      throw error;
+    }
   }
 
   async createAnalysis(analysis: WeatherRiskAnalysisDto): Promise<void> {
@@ -89,35 +131,41 @@ export class KVWeatherDataService implements WeatherDataService {
   }
 
   async updateAnalysis(analysisId: string, updates: Partial<WeatherRiskAnalysisDto>): Promise<void> {
-    const existingAnalysis = await this.getAnalysisById(analysisId);
-    if (!existingAnalysis) throw new Error('Weather analysis not found');
+    try {
+      const existingAnalysis = await this.getAnalysisById(analysisId);
+      if (!existingAnalysis) throw new Error('Weather analysis not found');
 
-    const updatedAnalysis = { 
-      ...existingAnalysis, 
-      ...updates, 
-      updatedAt: new Date().toISOString() 
-    };
-    
-    const metadata = {
-      id: analysisId,
-      createdAt: existingAnalysis.createdAt,
-      updatedAt: updatedAnalysis.updatedAt,
-      createdBy: existingAnalysis.createdBy,
-      tags: [
-        'weather_analysis', 
-        updatedAnalysis.riskLevel, 
-        updatedAnalysis.weatherCondition,
-        updatedAnalysis.projectId,
-        ...(updatedAnalysis.taskId ? [updatedAnalysis.taskId] : [])
-      ]
-    };
+      const updatedAnalysis = { 
+        ...existingAnalysis, 
+        ...updates, 
+        updatedAt: new Date().toISOString() 
+      };
+      
+      const metadata = {
+        id: analysisId,
+        createdAt: existingAnalysis.createdAt,
+        updatedAt: updatedAnalysis.updatedAt,
+        createdBy: existingAnalysis.createdBy,
+        tags: [
+          'weather_analysis', 
+          updatedAnalysis.riskLevel, 
+          updatedAnalysis.weatherCondition,
+          updatedAnalysis.projectId,
+          ...(updatedAnalysis.taskId ? [updatedAnalysis.taskId] : [])
+        ]
+      };
 
-    await this.kvService.put(this.getAnalysisKey(analysisId), updatedAnalysis, metadata);
+      await this.kvService.put(this.getAnalysisKey(analysisId), updatedAnalysis, metadata);
 
-    // Update risk level index if changed
-    if (existingAnalysis.riskLevel !== updatedAnalysis.riskLevel) {
-      await this.kvService.delete(this.getRiskLevelKey(existingAnalysis.riskLevel, analysisId));
-      await this.kvService.put(this.getRiskLevelKey(updatedAnalysis.riskLevel, analysisId), analysisId, metadata);
+      // Update risk level index if changed
+      if (existingAnalysis.riskLevel !== updatedAnalysis.riskLevel) {
+        await this.kvService.delete(this.getRiskLevelKey(existingAnalysis.riskLevel, analysisId));
+        await this.kvService.put(this.getRiskLevelKey(updatedAnalysis.riskLevel, analysisId), analysisId, metadata);
+      }
+    } catch (error) {
+      // Clear cache on update errors
+      await this.clearAnalysisCache(analysisId);
+      throw error;
     }
   }
 
@@ -125,11 +173,8 @@ export class KVWeatherDataService implements WeatherDataService {
     const analysis = await this.getAnalysisById(analysisId);
     if (!analysis) return;
 
-    await Promise.all([
-      this.kvService.delete(this.getAnalysisKey(analysisId)),
-      this.kvService.delete(this.getProjectAnalysisKey(analysis.projectId, analysisId)),
-      this.kvService.delete(this.getRiskLevelKey(analysis.riskLevel, analysisId))
-    ]);
+    // Always clear from KV when deleting
+    await this.clearAnalysisCache(analysisId, analysis);
   }
 
   async getHighRiskAnalyses(organizationId?: string, query?: PaginationQuery): Promise<PagedResult<WeatherRiskAnalysisDto>> {
@@ -198,5 +243,32 @@ export class KVWeatherDataService implements WeatherDataService {
     }
     
     return result.data;
+  }
+
+  private async clearAnalysisCache(analysisId: string, analysis?: WeatherRiskAnalysisDto): Promise<void> {
+    try {
+      const promises = [this.kvService.delete(this.getAnalysisKey(analysisId))];
+      
+      if (analysis) {
+        promises.push(
+          this.kvService.delete(this.getProjectAnalysisKey(analysis.projectId, analysisId)),
+          this.kvService.delete(this.getRiskLevelKey(analysis.riskLevel, analysisId))
+        );
+      }
+      
+      await Promise.all(promises);
+    } catch (error) {
+      console.warn(`Failed to clear weather analysis cache for ${analysisId}:`, error);
+    }
+  }
+
+  private async clearProjectAnalysesCache(projectId: string): Promise<void> {
+    try {
+      const analysisListResult = await this.kvService.list(`weather_analysis:project:${projectId}:`);
+      const deletePromises = analysisListResult.keys.map(key => this.kvService.delete(key.name));
+      await Promise.all(deletePromises);
+    } catch (error) {
+      console.warn(`Failed to clear project analyses cache for ${projectId}:`, error);
+    }
   }
 }

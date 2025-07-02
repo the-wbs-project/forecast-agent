@@ -39,15 +39,15 @@ public class ProjectsController : BaseController
         try
         {
             var (validPageNumber, validPageSize) = ValidatePaginationParameters(pageNumber, pageSize);
-            
+
             // Use organization from claims if not provided and user doesn't have admin rights
             organizationId ??= GetCurrentOrganizationId();
 
             var result = await _projectService.GetProjectsAsync(
-                validPageNumber, 
-                validPageSize, 
-                status, 
-                organizationId, 
+                validPageNumber,
+                validPageSize,
+                status,
+                organizationId,
                 search);
 
             return HandleServiceResponse(result);
@@ -100,12 +100,12 @@ public class ProjectsController : BaseController
                 return ForbiddenResponse("Cannot create project for different organization");
 
             var result = await _projectService.CreateAsync(createDto, currentUserId.Value);
-            
+
             if (result.Success && result.Data != null)
             {
                 return CreatedAtAction(
-                    nameof(GetProject), 
-                    new { id = result.Data.Id }, 
+                    nameof(GetProject),
+                    new { id = result.Data.Id },
                     result);
             }
 
@@ -182,12 +182,12 @@ public class ProjectsController : BaseController
         try
         {
             var result = await _projectService.ExistsAsync(id);
-            
+
             if (HttpContext.Request.Method == "HEAD")
             {
                 return result.Data == true ? Ok() : NotFound();
             }
-            
+
             return HandleServiceResponse(result);
         }
         catch (Exception ex)
@@ -236,10 +236,10 @@ public class ProjectsController : BaseController
                 return ForbiddenResponse("Cannot access projects from different organization");
 
             var (validPageNumber, validPageSize) = ValidatePaginationParameters(pageNumber, pageSize);
-            
+
             var result = await _projectService.GetProjectsAsync(
-                validPageNumber, 
-                validPageSize, 
+                validPageNumber,
+                validPageSize,
                 organizationId: organizationId);
 
             return HandleServiceResponse(result);
@@ -270,10 +270,10 @@ public class ProjectsController : BaseController
 
             var (validPageNumber, validPageSize) = ValidatePaginationParameters(pageNumber, pageSize);
             var currentOrgId = GetCurrentOrganizationId();
-            
+
             var result = await _projectService.GetProjectsAsync(
-                validPageNumber, 
-                validPageSize, 
+                validPageNumber,
+                validPageSize,
                 search: searchTerm,
                 organizationId: currentOrgId);
 

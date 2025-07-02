@@ -1,0 +1,37 @@
+:host {
+  display: block;
+}
+
+.badge-planning { 
+  background-color: #6c757d; 
+}
+
+.badge-in-progress { 
+  background-color: #0d6efd; 
+}
+
+.badge-on-hold { 
+  background-color: #ffc107; 
+  color: #212529; 
+}
+
+.badge-completed { 
+  background-color: #198754; 
+}
+
+.badge-cancelled { 
+  background-color: #dc3545; 
+}
+
+.e-tab .e-tab-header {
+  background: #f8f9fa;
+}
+
+.card {
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+}

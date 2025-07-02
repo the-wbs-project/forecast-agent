@@ -1,5 +1,6 @@
 import { KVService } from './kv.service';
 import { ProjectDto, PagedResult, PaginationQuery } from '../dto';
+import { WeatherGuardApiService } from '../api-services/external-api.service';
 
 export interface ProjectDataService {
   getProjectById(projectId: string): Promise<ProjectDto | null>;
@@ -11,7 +12,10 @@ export interface ProjectDataService {
 }
 
 export class KVProjectDataService implements ProjectDataService {
-  constructor(private kvService: KVService) {}
+  constructor(
+    private kvService: KVService,
+    private apiService?: WeatherGuardApiService
+  ) {}
 
   private getProjectKey(projectId: string): string {
     return `project:${projectId}`;
@@ -22,7 +26,29 @@ export class KVProjectDataService implements ProjectDataService {
   }
 
   async getProjectById(projectId: string): Promise<ProjectDto | null> {
-    return await this.kvService.get<ProjectDto>(this.getProjectKey(projectId));
+    try {
+      // Try KV first
+      let project = await this.kvService.get<ProjectDto>(this.getProjectKey(projectId));
+      
+      if (!project && this.apiService) {
+        // Fallback to API
+        try {
+          project = await this.apiService.getProject(projectId);
+          if (project) {
+            // Cache in KV for future requests
+            await this.createProject(project);
+          }
+        } catch (apiError) {
+          console.warn(`API fallback failed for project ${projectId}:`, apiError);
+        }
+      }
+      
+      return project;
+    } catch (error) {
+      // On any error, clear KV cache to ensure consistency
+      await this.clearProjectCache(projectId);
+      throw error;
+    }
   }
 
   async getProjectsByOrganization(organizationId: string, query?: PaginationQuery): Promise<PagedResult<ProjectDto>> {
@@ -75,36 +101,38 @@ export class KVProjectDataService implements ProjectDataService {
   }
 
   async updateProject(projectId: string, updates: Partial<ProjectDto>): Promise<void> {
-    const existingProject = await this.getProjectById(projectId);
-    if (!existingProject) throw new Error('Project not found');
+    try {
+      const existingProject = await this.getProjectById(projectId);
+      if (!existingProject) throw new Error('Project not found');
 
-    const updatedProject = { 
-      ...existingProject, 
-      ...updates, 
-      updatedAt: new Date().toISOString() 
-    };
-    
-    const metadata = {
-      id: projectId,
-      createdAt: existingProject.createdAt,
-      updatedAt: updatedProject.updatedAt,
-      createdBy: existingProject.createdBy,
-      tags: ['project', updatedProject.status, updatedProject.organizationId]
-    };
+      const updatedProject = { 
+        ...existingProject, 
+        ...updates, 
+        updatedAt: new Date().toISOString() 
+      };
+      
+      const metadata = {
+        id: projectId,
+        createdAt: existingProject.createdAt,
+        updatedAt: updatedProject.updatedAt,
+        createdBy: existingProject.createdBy,
+        tags: ['project', updatedProject.status, updatedProject.organizationId]
+      };
 
-    await this.kvService.put(this.getProjectKey(projectId), updatedProject, metadata);
+      await this.kvService.put(this.getProjectKey(projectId), updatedProject, metadata);
+    } catch (error) {
+      // Clear cache on update errors to ensure consistency
+      await this.clearProjectCache(projectId);
+      throw error;
+    }
   }
 
   async deleteProject(projectId: string): Promise<void> {
     const project = await this.getProjectById(projectId);
     if (!project) return;
 
-    const orgProjectKey = `project:org:${project.organizationId}:${projectId}`;
-    
-    await Promise.all([
-      this.kvService.delete(this.getProjectKey(projectId)),
-      this.kvService.delete(orgProjectKey)
-    ]);
+    // Always clear from KV when deleting
+    await this.clearProjectCache(projectId, project.organizationId);
   }
 
   async searchProjects(query: string, organizationId?: string, pagination?: PaginationQuery): Promise<PagedResult<ProjectDto>> {
@@ -144,5 +172,20 @@ export class KVProjectDataService implements ProjectDataService {
       pageSize,
       totalPages
     };
+  }
+
+  private async clearProjectCache(projectId: string, organizationId?: string): Promise<void> {
+    try {
+      const promises = [this.kvService.delete(this.getProjectKey(projectId))];
+      
+      if (organizationId) {
+        const orgProjectKey = `project:org:${organizationId}:${projectId}`;
+        promises.push(this.kvService.delete(orgProjectKey));
+      }
+      
+      await Promise.all(promises);
+    } catch (error) {
+      console.warn(`Failed to clear project cache for ${projectId}:`, error);
+    }
   }
 }

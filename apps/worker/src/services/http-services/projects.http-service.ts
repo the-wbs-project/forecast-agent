@@ -14,6 +14,8 @@ export class ProjectsHttpService {
             const user: any = ctx.var.user;
             const query = ctx.req.query();
 
+            console.log('query', query);
+
             const pagination: PaginationQuery = {
                 pageNumber: parseInt(query.pageNumber || '1'),
                 pageSize: Math.min(parseInt(query.pageSize || '10'), 100)
@@ -71,6 +73,10 @@ export class ProjectsHttpService {
         try {
             const user: any = ctx.var.user;
             const request = await ctx.req.json<CreateProjectRequest>();
+
+            if (!request.organizationId) {
+                request.organizationId = user.organizationId;
+            }
 
             if (!request.name || !request.organizationId) {
                 return ctx.json({

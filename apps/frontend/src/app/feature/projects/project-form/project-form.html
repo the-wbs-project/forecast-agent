@@ -1,0 +1,136 @@
+<div class="container mt-5 pt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h3 class="mb-0">{{ isEditMode() ? 'Edit Project' : 'Create New Project' }}</h3>
+        </div>
+        <div class="card-body">
+          @if (loading()) {
+            <div class="text-center py-5">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          }
+          
+          @if (error()) {
+            <div class="alert alert-danger" role="alert">
+              {{ error() }}
+            </div>
+          }
+          
+          @if (!loading()) {
+            <form #projectForm="ngForm" (ngSubmit)="saveProject()">
+              <div class="mb-3">
+                <label class="form-label">Project Name *</label>
+                <ejs-textbox
+                  [(ngModel)]="formData.name"
+                  name="name"
+                  placeholder="Enter project name"
+                  cssClass="e-outline"
+                  required
+                  [showClearButton]="true">
+                </ejs-textbox>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Description</label>
+                <ejs-textbox
+                  [(ngModel)]="formData.description"
+                  name="description"
+                  placeholder="Enter project description"
+                  cssClass="e-outline"
+                  [multiline]="true"
+                  [showClearButton]="true">
+                </ejs-textbox>
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Start Date *</label>
+                  <ejs-datepicker
+                    [(ngModel)]="formData.startDate"
+                    name="startDate"
+                    placeholder="Select start date"
+                    cssClass="e-outline"
+                    required
+                    [format]="'MM/dd/yyyy'">
+                  </ejs-datepicker>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">End Date *</label>
+                  <ejs-datepicker
+                    [(ngModel)]="formData.endDate"
+                    name="endDate"
+                    placeholder="Select end date"
+                    cssClass="e-outline"
+                    required
+                    [format]="'MM/dd/yyyy'"
+                    [min]="formData.startDate">
+                  </ejs-datepicker>
+                </div>
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Budget</label>
+                  <ejs-numerictextbox
+                    [(ngModel)]="formData.budget"
+                    name="budget"
+                    placeholder="Enter budget"
+                    cssClass="e-outline"
+                    [format]="'c2'"
+                    [min]="0"
+                    [showSpinButton]="false">
+                  </ejs-numerictextbox>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Location</label>
+                  <ejs-textbox
+                    [(ngModel)]="formData.location"
+                    name="location"
+                    placeholder="Enter project location"
+                    cssClass="e-outline"
+                    [showClearButton]="true">
+                  </ejs-textbox>
+                </div>
+              </div>
+              
+              @if (isEditMode()) {
+                <div class="mb-3">
+                  <label class="form-label">Status</label>
+                  <ejs-dropdownlist
+                    [(ngModel)]="formData.status"
+                    name="status"
+                    [dataSource]="statusOptions"
+                    [fields]="{ text: 'text', value: 'value' }"
+                    placeholder="Select status"
+                    cssClass="e-outline">
+                  </ejs-dropdownlist>
+                </div>
+              }
+              
+              <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-secondary" (click)="navigateBack()">
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  class="btn btn-primary" 
+                  [disabled]="!projectForm.valid || submitting()">
+                  @if (submitting()) {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                  }
+                  {{ isEditMode() ? 'Update' : 'Create' }} Project
+                </button>
+              </div>
+            </form>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

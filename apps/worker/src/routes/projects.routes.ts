@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { Variables } from '../config';
+import type { Variables } from '../config';
 import { Http } from '../services';
 
 const projects = new Hono<{ E: Env; Variables: Variables }>();

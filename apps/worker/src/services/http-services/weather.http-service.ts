@@ -60,6 +60,11 @@ export class WeatherHttpService {
         data: forecast
       });
     } catch (error) {
+      ctx.var.logger.trackException('Failed to get weather forecast', error as Error, {
+        latitude: ctx.req.query().latitude,
+        longitude: ctx.req.query().longitude,
+        days: ctx.req.query().days
+      });
       return ctx.json({
         success: false,
         message: error instanceof Error ? error.message : 'Failed to get weather forecast'
@@ -216,6 +221,13 @@ export class WeatherHttpService {
       };
 
       await ctx.var.weatherService.createAnalysis(analysis);
+
+      ctx.var.logger.trackEvent('Weather analysis created', 'Info', {
+        analysisId: analysis.id,
+        projectId: analysis.projectId,
+        riskLevel: analysis.riskLevel,
+        riskScore: analysis.riskScore
+      });
 
       return ctx.json<ApiResponse<WeatherRiskAnalysisDto>>({
         success: true,
