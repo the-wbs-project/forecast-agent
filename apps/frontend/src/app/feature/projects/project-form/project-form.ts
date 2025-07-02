@@ -1,7 +1,7 @@
 import { CommonModule } from "@angular/common";
-import { Component, type OnInit, inject, signal } from "@angular/core";
+import { Component, type OnInit, inject, input, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { ActivatedRoute, Router } from "@angular/router";
+import { Router } from "@angular/router";
 import { ButtonModule } from "@syncfusion/ej2-angular-buttons";
 import { DatePickerModule } from "@syncfusion/ej2-angular-calendars";
 import { DropDownListModule } from "@syncfusion/ej2-angular-dropdowns";
@@ -32,8 +32,10 @@ import { ProjectService } from "../services/project";
 })
 export class ProjectFormComponent implements OnInit {
 	private router = inject(Router);
-	private route = inject(ActivatedRoute);
 	private projectService = inject(ProjectService);
+
+	// Input signal for route parameter
+	protected readonly id = input.required<string>();
 
 	protected readonly isEditMode = signal(false);
 	protected readonly projectId = signal<string | null>(null);
@@ -60,19 +62,17 @@ export class ProjectFormComponent implements OnInit {
 	};
 
 	protected readonly statusOptions = Object.entries(ProjectStatus).map(
-		([key, value]) => ({
+		([, value]) => ({
 			text: value,
 			value: value,
 		}),
 	);
 
 	async ngOnInit() {
-		const id = this.route.snapshot.params.id;
-		if (id) {
-			this.isEditMode.set(true);
-			this.projectId.set(id);
-			await this.loadProject(id);
-		}
+		const id = this.id();
+		this.isEditMode.set(true);
+		this.projectId.set(id);
+		await this.loadProject(id);
 	}
 
 	async loadProject(id: string) {

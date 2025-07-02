@@ -36,9 +36,7 @@ app.use("*", async (ctx, next) => {
 	const authService = new AuthService(authDataService, env.JWT_SECRET);
 
 	// Initialize API service for fallback
-	const weatherGuardApiService = env.API_BASE_URL
-		? new WeatherGuardApiService(env.API_BASE_URL, env.API_TOKEN)
-		: undefined;
+	const weatherGuardApiService = new WeatherGuardApiService(env.API_BASE_URL, env.API_TOKEN)
 
 	// Initialize data services with API fallback
 	const projectService = new KVProjectDataService(
@@ -54,9 +52,7 @@ app.use("*", async (ctx, next) => {
 	const datadog = new DataDogService(env);
 	const loggerService = new HttpLogger(ctx);
 	const fetcher = new Fetcher(loggerService);
-	const weatherApiService = env.OPENWEATHER_API_KEY
-		? new OpenWeatherMapService(env.OPENWEATHER_API_KEY, fetcher)
-		: null;
+	const weatherApiService = new OpenWeatherMapService(env.OPENWEATHER_API_KEY, fetcher)
 
 	ctx.set("kvService", kvService);
 	ctx.set("authService", authService);
@@ -66,7 +62,7 @@ app.use("*", async (ctx, next) => {
 	ctx.set("datadog", datadog);
 	ctx.set("logger", loggerService);
 	ctx.set("fetcher", fetcher);
-	ctx.set("weatherApiService", weatherApiService as WeatherApiService | null);
+	ctx.set("weatherApiService", weatherApiService);
 	ctx.set("weatherGuardApiService", weatherGuardApiService);
 
 	await next();

@@ -21,15 +21,11 @@ export interface ProjectDataService {
 export class KVProjectDataService implements ProjectDataService {
 	constructor(
 		private kvService: KVService,
-		private apiService?: WeatherGuardApiService,
-	) {}
+		private apiService: WeatherGuardApiService,
+	) { }
 
 	private getProjectKey(projectId: string): string {
 		return `project:${projectId}`;
-	}
-
-	private getOrganizationProjectsKey(organizationId: string): string {
-		return `org_projects:${organizationId}`;
 	}
 
 	async getProjectById(projectId: string): Promise<ProjectDto | null> {
@@ -39,7 +35,7 @@ export class KVProjectDataService implements ProjectDataService {
 				this.getProjectKey(projectId),
 			);
 
-			if (!project && this.apiService) {
+			if (!project) {
 				// Fallback to API
 				try {
 					project = (await this.apiService.getProject(projectId)) as ProjectDto;
@@ -74,9 +70,33 @@ export class KVProjectDataService implements ProjectDataService {
 		const projectListResult = await this.kvService.list(
 			`project:org:${organizationId}:`,
 		);
-		const projectIds = projectListResult.keys
+		let projectIds = projectListResult.keys
 			.map((key) => key.name.split(":").pop())
 			.filter((id): id is string => id !== undefined);
+
+		// If no data in KV and API service available, try API fallback
+		if (projectIds.length === 0) {
+			try {
+				const apiProjects = (await this.apiService.getProjects({
+					organizationId,
+					...query,
+				})) as PagedResult<ProjectDto>;
+				// Cache API results in KV
+				if (apiProjects?.items && Array.isArray(apiProjects.items)) {
+					for (const project of apiProjects.items as ProjectDto[]) {
+						await this.createProject(project);
+					}
+					projectIds = (apiProjects.items as ProjectDto[]).map(
+						(p: ProjectDto) => p.id,
+					);
+				}
+			} catch (apiError) {
+				console.warn(
+					`API fallback failed for organization ${organizationId} projects:`,
+					apiError,
+				);
+			}
+		}
 
 		// Calculate pagination
 		const totalCount = projectIds.length;
@@ -104,43 +124,60 @@ export class KVProjectDataService implements ProjectDataService {
 	}
 
 	async createProject(project: ProjectDto): Promise<void> {
-		const projectKey = this.getProjectKey(project.id);
-		const orgProjectKey = `project:org:${project.organizationId}:${project.id}`;
+		try {
+			await this.apiService.createProject(project);
 
-		const metadata = {
-			id: project.id,
-			createdAt: project.createdAt,
-			updatedAt: project.updatedAt,
-			createdBy: project.createdBy,
-			tags: ["project", project.status, project.organizationId],
-		};
+			// Only cache in KV if API succeeded
+			const projectKey = this.getProjectKey(project.id);
+			const orgProjectKey = `project:org:${project.organizationId}:${project.id}`;
 
-		await Promise.all([
-			this.kvService.put(projectKey, project, metadata),
-			this.kvService.put(orgProjectKey, project.id, metadata), // Index for organization
-		]);
+			const metadata = {
+				id: project.id,
+				createdAt: project.createdAt,
+				updatedAt: project.updatedAt,
+				createdBy: project.createdBy,
+				tags: ["project", project.status, project.organizationId],
+			};
+
+			await Promise.all([
+				this.kvService.put(projectKey, project, metadata),
+				this.kvService.put(orgProjectKey, project.id, metadata), // Index for organization
+			]);
+		} catch (apiError) {
+			console.warn(`API create failed for project ${project.id}:`, apiError);
+			// Clear any existing KV data on API failure
+			await this.clearProjectCache(project.id, project.organizationId);
+			throw apiError;
+		}
 	}
 
 	async updateProject(
 		projectId: string,
 		updates: Partial<ProjectDto>,
 	): Promise<void> {
+		const existingProject = await this.getProjectById(projectId);
+		if (!existingProject) throw new Error("Project not found");
+
+		const updatedProject = {
+			...existingProject,
+			...updates,
+			updatedAt: new Date().toISOString(),
+		};
+
 		try {
-			const existingProject = await this.getProjectById(projectId);
-			if (!existingProject) throw new Error("Project not found");
+			await this.apiService.updateProject(projectId, updates);
 
-			const updatedProject = {
-				...existingProject,
-				...updates,
-				updatedAt: new Date().toISOString(),
-			};
-
+			// Only update KV cache if API succeeded
 			const metadata = {
 				id: projectId,
 				createdAt: existingProject.createdAt,
 				updatedAt: updatedProject.updatedAt,
 				createdBy: existingProject.createdBy,
-				tags: ["project", updatedProject.status, updatedProject.organizationId],
+				tags: [
+					"project",
+					updatedProject.status,
+					updatedProject.organizationId,
+				],
 			};
 
 			await this.kvService.put(
@@ -148,10 +185,11 @@ export class KVProjectDataService implements ProjectDataService {
 				updatedProject,
 				metadata,
 			);
-		} catch (error) {
-			// Clear cache on update errors to ensure consistency
-			await this.clearProjectCache(projectId);
-			throw error;
+		} catch (apiError) {
+			console.warn(`API update failed for project ${projectId}:`, apiError);
+			// Clear KV data on API failure to maintain consistency
+			await this.clearProjectCache(projectId, existingProject.organizationId);
+			throw apiError;
 		}
 	}
 
@@ -159,8 +197,16 @@ export class KVProjectDataService implements ProjectDataService {
 		const project = await this.getProjectById(projectId);
 		if (!project) return;
 
-		// Always clear from KV when deleting
-		await this.clearProjectCache(projectId, project.organizationId);
+		try {
+			await this.apiService.deleteProject(projectId);
+
+			// Only clear from KV if API deletion succeeded
+			await this.clearProjectCache(projectId, project.organizationId);
+		} catch (apiError) {
+			console.warn(`API delete failed for project ${projectId}:`, apiError);
+			// On API failure, don't clear KV data to maintain state
+			throw apiError;
+		}
 	}
 
 	async searchProjects(
@@ -177,18 +223,44 @@ export class KVProjectDataService implements ProjectDataService {
 			: "project:";
 		const projectListResult = await this.kvService.list(prefix);
 
-		// Get project details and filter by search query
-		const projectPromises = projectListResult.keys.map(async (key) => {
-			const projectId = organizationId
-				? key.name.split(":").pop()
-				: key.name.replace("project:", "");
-			if (!projectId) return null;
-			return await this.getProjectById(projectId);
-		});
+		let allProjects: ProjectDto[] = [];
 
-		const allProjects = (await Promise.all(projectPromises)).filter(
-			(p: ProjectDto | null): p is ProjectDto => p !== null,
-		);
+		if (projectListResult.keys.length === 0) {
+			// If no data in KV and API service available, try API fallback
+			try {
+				const apiProjects = (await this.apiService.getProjects({
+					search: query,
+					organizationId,
+					...pagination,
+				})) as PagedResult<ProjectDto>;
+
+				if (apiProjects?.items && Array.isArray(apiProjects.items)) {
+					// Cache API results in KV
+					for (const project of apiProjects.items as ProjectDto[]) {
+						await this.createProject(project);
+					}
+					allProjects = apiProjects.items as ProjectDto[];
+				}
+			} catch (apiError) {
+				console.warn(
+					`API search fallback failed for query "${query}":`,
+					apiError,
+				);
+			}
+		} else {
+			// Get project details from KV
+			const projectPromises = projectListResult.keys.map(async (key) => {
+				const projectId = organizationId
+					? key.name.split(":").pop()
+					: key.name.replace("project:", "");
+				if (!projectId) return null;
+				return await this.getProjectById(projectId);
+			});
+
+			allProjects = (await Promise.all(projectPromises)).filter(
+				(p: ProjectDto | null): p is ProjectDto => p !== null,
+			);
+		}
 
 		// Filter by search query
 		const queryLower = query.toLowerCase();

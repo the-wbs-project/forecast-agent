@@ -247,7 +247,7 @@ export class WeatherHttpService {
 			const days = Math.ceil(
 				(new Date(request.endDate).getTime() -
 					new Date(request.startDate).getTime()) /
-					(1000 * 60 * 60 * 24),
+				(1000 * 60 * 60 * 24),
 			);
 			const forecast = await ctx.var.weatherApiService.getForecast(
 				request.latitude,
@@ -296,10 +296,10 @@ export class WeatherHttpService {
 				recommendedActions:
 					riskFactors.length > 0
 						? [
-								"Monitor weather conditions closely",
-								"Consider adjusting schedule for high-risk days",
-								"Ensure proper equipment and safety measures",
-							]
+							"Monitor weather conditions closely",
+							"Consider adjusting schedule for high-risk days",
+							"Ensure proper equipment and safety measures",
+						]
 						: ["Continue with planned schedule"],
 				delayRisk: Math.min(riskScore / 10, 10),
 				costImpact: riskScore > 30 ? riskScore * 100 : undefined,
@@ -374,10 +374,9 @@ export class WeatherHttpService {
 
 			// This is a simplified approach - in a real implementation,
 			// you'd call the analysis creation logic directly
-			const response = await ctx.var.weatherApiService.fetch(createRequest, {});
-			const result = await response.json();
+			//const result = await ctx.var.weatherApiService.generateWeatherAnalysis(projectId, analysisRequest) as ApiResponse<WeatherRiskAnalysisDto>;
 
-			return ctx.json(result, response.status);
+			return ctx.json({});
 		} catch (error) {
 			return ctx.json(
 				{

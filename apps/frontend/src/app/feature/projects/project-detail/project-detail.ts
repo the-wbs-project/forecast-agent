@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
-import { Component, type OnInit, inject, signal } from "@angular/core";
-import { ActivatedRoute, RouterModule } from "@angular/router";
+import { Component, type OnInit, inject, input, signal } from "@angular/core";
+import { RouterModule } from "@angular/router";
 import { ButtonModule } from "@syncfusion/ej2-angular-buttons";
 import {
 	AccumulationChartModule,
@@ -35,9 +35,11 @@ import { ProjectService } from "../services/project";
 	styleUrl: "./project-detail.scss",
 })
 export class ProjectDetailComponent implements OnInit {
-	private readonly route = inject(ActivatedRoute);
 	protected readonly projectService = inject(ProjectService);
 	protected readonly taskService = inject(TaskService);
+
+	// Input signal for route parameter
+	protected readonly id = input.required<string>();
 
 	protected readonly project = signal<Project | null>(null);
 	protected readonly tasks = signal<Task[]>([]);
@@ -52,10 +54,8 @@ export class ProjectDetailComponent implements OnInit {
 	});
 
 	async ngOnInit() {
-		const projectId = this.route.snapshot.params.id;
-		if (projectId) {
-			await this.loadProjectData(projectId);
-		}
+		const projectId = this.id();
+		await this.loadProjectData(projectId);
 	}
 
 	async loadProjectData(projectId: string) {

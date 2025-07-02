@@ -1,25 +1,24 @@
 import type { TokenPayload } from "../dto";
-import type { WeatherGuardApiService } from "../services/api-services/external-api.service";
 import type {
+	DataDogService,
+	Fetcher,
+	IAuthService,
 	KVProjectDataService,
 	KVService,
 	KVTaskDataService,
 	KVWeatherDataService,
-} from "../services/data-services";
-import type { Fetcher } from "../services/fetcher.service";
-import type {
-	AuthHttpServiceType,
-	WeatherHttpServiceType,
-} from "../services/http-services";
-import type { DataDogService, Logger } from "../services/logging";
+	Logger,
+	WeatherApiService,
+	WeatherGuardApiService,
+} from "../services";
 
 export type Variables = {
 	kvService: KVService;
-	authService: AuthHttpServiceType;
+	authService: IAuthService;
 	projectService: KVProjectDataService;
 	taskService: KVTaskDataService;
 	weatherService: KVWeatherDataService;
-	weatherApiService: WeatherHttpServiceType;
+	weatherApiService: WeatherApiService;
 	weatherGuardApiService?: WeatherGuardApiService;
 	user: TokenPayload | null;
 	datadog: DataDogService;

@@ -17,7 +17,7 @@ export class OpenWeatherMapService implements WeatherApiService {
 	constructor(
 		private apiKey: string,
 		private fetcher: Fetcher,
-	) {}
+	) { }
 
 	async getForecast(
 		latitude: number,
@@ -183,7 +183,7 @@ export class OpenWeatherMapService implements WeatherApiService {
 }
 
 export class WeatherGovService implements WeatherApiService {
-	constructor(private fetcher: Fetcher) {}
+	constructor(private fetcher: Fetcher) { }
 
 	async getForecast(
 		latitude: number,

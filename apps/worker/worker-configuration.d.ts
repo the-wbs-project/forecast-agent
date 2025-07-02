@@ -5,13 +5,13 @@ declare namespace Cloudflare {
     interface Env {
         METADATA_KV: KVNamespace;
         JWT_SECRET: string;
-        OPENWEATHER_API_KEY?: string;
-        ALLOWED_ORIGINS?: string;
+        OPENWEATHER_API_KEY: string;
+        ALLOWED_ORIGINS: string;
         DATADOG_API_KEY: string;
         DATADOG_ENV: string;
         DATADOG_HOST: string;
-        API_BASE_URL?: string;
-        API_TOKEN?: string;
+        API_BASE_URL: string;
+        API_TOKEN: string;
     }
 }
 interface Env extends Cloudflare.Env { }
