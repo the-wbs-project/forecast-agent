@@ -1,5 +1,5 @@
 export interface ImportProjectRequest {
-  file: File;
-  projectName: string;
-  description?: string;
+	file: File;
+	projectName: string;
+	description?: string;
 }

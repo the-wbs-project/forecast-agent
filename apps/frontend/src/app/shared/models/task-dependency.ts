@@ -1,9 +1,9 @@
-import { DependencyType } from './dependency-type';
+import type { DependencyType } from "./dependency-type";
 
 export interface TaskDependency {
-  id?: string;
-  taskId: string;
-  dependentTaskId: string;
-  dependencyType: DependencyType;
-  lagTime: number;
+	id?: string;
+	taskId: string;
+	dependentTaskId: string;
+	dependencyType: DependencyType;
+	lagTime: number;
 }

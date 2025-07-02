@@ -1,135 +1,170 @@
 export interface ExternalApiService {
-  get<T>(url: string, headers?: Record<string, string>): Promise<T>;
-  post<T>(url: string, data: any, headers?: Record<string, string>): Promise<T>;
-  put<T>(url: string, data: any, headers?: Record<string, string>): Promise<T>;
-  delete<T>(url: string, headers?: Record<string, string>): Promise<T>;
+	get<T>(url: string, headers?: Record<string, string>): Promise<T>;
+	post<T>(
+		url: string,
+		data: unknown,
+		headers?: Record<string, string>,
+	): Promise<T>;
+	put<T>(
+		url: string,
+		data: unknown,
+		headers?: Record<string, string>,
+	): Promise<T>;
+	delete<T>(url: string, headers?: Record<string, string>): Promise<T>;
 }
 
 export class HttpService implements ExternalApiService {
-  constructor(private baseUrl?: string, private defaultHeaders?: Record<string, string>) {}
+	constructor(
+		private baseUrl?: string,
+		private defaultHeaders?: Record<string, string>,
+	) {}
 
-  async get<T>(url: string, headers?: Record<string, string>): Promise<T> {
-    return this.request<T>('GET', url, undefined, headers);
-  }
+	async get<T>(url: string, headers?: Record<string, string>): Promise<T> {
+		return this.request<T>("GET", url, undefined, headers);
+	}
 
-  async post<T>(url: string, data: any, headers?: Record<string, string>): Promise<T> {
-    return this.request<T>('POST', url, data, headers);
-  }
+	async post<T>(
+		url: string,
+		data: unknown,
+		headers?: Record<string, string>,
+	): Promise<T> {
+		return this.request<T>("POST", url, data, headers);
+	}
 
-  async put<T>(url: string, data: any, headers?: Record<string, string>): Promise<T> {
-    return this.request<T>('PUT', url, data, headers);
-  }
+	async put<T>(
+		url: string,
+		data: unknown,
+		headers?: Record<string, string>,
+	): Promise<T> {
+		return this.request<T>("PUT", url, data, headers);
+	}
 
-  async delete<T>(url: string, headers?: Record<string, string>): Promise<T> {
-    return this.request<T>('DELETE', url, undefined, headers);
-  }
+	async delete<T>(url: string, headers?: Record<string, string>): Promise<T> {
+		return this.request<T>("DELETE", url, undefined, headers);
+	}
 
-  private async request<T>(
-    method: string, 
-    url: string, 
-    data?: any, 
-    headers?: Record<string, string>
-  ): Promise<T> {
-    const fullUrl = this.baseUrl ? `${this.baseUrl}${url}` : url;
-    
-    const requestHeaders = {
-      'Content-Type': 'application/json',
-      ...this.defaultHeaders,
-      ...headers
-    };
+	private async request<T>(
+		method: string,
+		url: string,
+		data?: unknown,
+		headers?: Record<string, string>,
+	): Promise<T> {
+		const fullUrl = this.baseUrl ? `${this.baseUrl}${url}` : url;
 
-    const requestInit: RequestInit = {
-      method,
-      headers: requestHeaders
-    };
+		const requestHeaders = {
+			"Content-Type": "application/json",
+			...this.defaultHeaders,
+			...headers,
+		};
 
-    if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-      requestInit.body = JSON.stringify(data);
-    }
+		const requestInit: RequestInit = {
+			method,
+			headers: requestHeaders,
+		};
 
-    const response = await fetch(fullUrl, requestInit);
+		if (data && (method === "POST" || method === "PUT" || method === "PATCH")) {
+			requestInit.body = JSON.stringify(data);
+		}
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
+		const response = await fetch(fullUrl, requestInit);
 
-    // Handle empty responses
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      return {} as T;
-    }
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`HTTP ${response.status}: ${errorText}`);
+		}
 
-    return await response.json();
-  }
+		// Handle empty responses
+		const contentType = response.headers.get("content-type");
+		if (!contentType || !contentType.includes("application/json")) {
+			return {} as T;
+		}
+
+		return await response.json();
+	}
 }
 
 // Service for calling the main WeatherGuard API
 export class WeatherGuardApiService extends HttpService {
-  constructor(apiBaseUrl: string, apiToken?: string) {
-    const headers: Record<string, string> = {};
-    if (apiToken) {
-      headers['Authorization'] = `Bearer ${apiToken}`;
-    }
-    
-    super(apiBaseUrl, headers);
-  }
+	constructor(apiBaseUrl: string, apiToken?: string) {
+		const headers: Record<string, string> = {};
+		if (apiToken) {
+			headers.Authorization = `Bearer ${apiToken}`;
+		}
 
-  // Project operations
-  async getProjects(params?: Record<string, any>) {
-    const queryParams = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.get(`/api/projects${queryParams}`);
-  }
+		super(apiBaseUrl, headers);
+	}
 
-  async getProject(projectId: string) {
-    return this.get(`/api/projects/${projectId}`);
-  }
+	// Project operations
+	async getProjects(params?: Record<string, unknown>) {
+		const queryParams = params
+			? `?${new URLSearchParams(params).toString()}`
+			: "";
+		return this.get(`/api/projects${queryParams}`);
+	}
 
-  async createProject(projectData: any) {
-    return this.post('/api/projects', projectData);
-  }
+	async getProject(projectId: string) {
+		return this.get(`/api/projects/${projectId}`);
+	}
 
-  async updateProject(projectId: string, updates: any) {
-    return this.put(`/api/projects/${projectId}`, updates);
-  }
+	async createProject(projectData: unknown) {
+		return this.post("/api/projects", projectData);
+	}
 
-  async deleteProject(projectId: string) {
-    return this.delete(`/api/projects/${projectId}`);
-  }
+	async updateProject(projectId: string, updates: unknown) {
+		return this.put(`/api/projects/${projectId}`, updates);
+	}
 
-  // Task operations
-  async getTasks(projectId: string, params?: Record<string, any>) {
-    const queryParams = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.get(`/api/tasks/project/${projectId}${queryParams}`);
-  }
+	async deleteProject(projectId: string) {
+		return this.delete(`/api/projects/${projectId}`);
+	}
 
-  async getTask(taskId: string) {
-    return this.get(`/api/tasks/${taskId}`);
-  }
+	// Task operations
+	async getTasks(projectId: string, params?: Record<string, unknown>) {
+		const queryParams = params
+			? `?${new URLSearchParams(params).toString()}`
+			: "";
+		return this.get(`/api/tasks/project/${projectId}${queryParams}`);
+	}
 
-  async createTask(taskData: any) {
-    return this.post('/api/tasks', taskData);
-  }
+	async getTask(taskId: string) {
+		return this.get(`/api/tasks/${taskId}`);
+	}
 
-  async updateTask(taskId: string, updates: any) {
-    return this.put(`/api/tasks/${taskId}`, updates);
-  }
+	async createTask(taskData: unknown) {
+		return this.post("/api/tasks", taskData);
+	}
 
-  async deleteTask(taskId: string) {
-    return this.delete(`/api/tasks/${taskId}`);
-  }
+	async updateTask(taskId: string, updates: unknown) {
+		return this.put(`/api/tasks/${taskId}`, updates);
+	}
 
-  // Weather operations
-  async getWeatherAnalyses(projectId: string, params?: Record<string, any>) {
-    const queryParams = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.get(`/api/weatherriskanalysis/project/${projectId}${queryParams}`);
-  }
+	async deleteTask(taskId: string) {
+		return this.delete(`/api/tasks/${taskId}`);
+	}
 
-  async generateWeatherAnalysis(projectId: string, analysisData: any) {
-    return this.post(`/api/weatherriskanalysis/project/${projectId}/generate`, analysisData);
-  }
+	// Weather operations
+	async getWeatherAnalyses(
+		projectId: string,
+		params?: Record<string, unknown>,
+	) {
+		const queryParams = params
+			? `?${new URLSearchParams(params).toString()}`
+			: "";
+		return this.get(
+			`/api/weatherriskanalysis/project/${projectId}${queryParams}`,
+		);
+	}
 
-  async getWeatherForecast(latitude: number, longitude: number, days: number = 7) {
-    return this.get(`/api/weatherriskanalysis/forecast?latitude=${latitude}&longitude=${longitude}&days=${days}`);
-  }
+	async generateWeatherAnalysis(projectId: string, analysisData: unknown) {
+		return this.post(
+			`/api/weatherriskanalysis/project/${projectId}/generate`,
+			analysisData,
+		);
+	}
+
+	async getWeatherForecast(latitude: number, longitude: number, days = 7) {
+		return this.get(
+			`/api/weatherriskanalysis/forecast?latitude=${latitude}&longitude=${longitude}&days=${days}`,
+		);
+	}
 }

@@ -1,5 +1,5 @@
-import type { Context as C } from 'hono';
-import type { Variables } from './variables.model';
+import type { Context as C } from "hono";
+import type { Variables } from "./variables.model";
 //
 //  This is so we can pass a context which doesn't include request info.
 //

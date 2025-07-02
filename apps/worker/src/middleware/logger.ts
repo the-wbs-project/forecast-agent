@@ -1,9 +1,9 @@
-import type { Context } from '../config';
+import type { Context } from "../config";
 
 export async function ddLogger(
 	ctx: Context,
 	next: () => Promise<void>,
-): Promise<Response | void> {
+): Promise<Response | undefined> {
 	const start = new Date();
 
 	await next();

@@ -1,80 +1,87 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { UploaderModule } from '@syncfusion/ej2-angular-inputs';
-import { TextBoxModule } from '@syncfusion/ej2-angular-inputs';
-import { ButtonModule } from '@syncfusion/ej2-angular-buttons';
-import { ProjectService } from '../services/project';
+import { CommonModule } from "@angular/common";
+import { Component, inject, signal } from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import { Router } from "@angular/router";
+import { ButtonModule } from "@syncfusion/ej2-angular-buttons";
+import { UploaderModule } from "@syncfusion/ej2-angular-inputs";
+import { TextBoxModule } from "@syncfusion/ej2-angular-inputs";
+import { ProjectService } from "../services/project";
 
 @Component({
-  selector: 'app-project-import',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    UploaderModule,
-    TextBoxModule,
-    ButtonModule
-  ],
-  templateUrl: './project-import.html',
-  styleUrl: './project-import.scss'
+	selector: "app-project-import",
+	standalone: true,
+	imports: [
+		CommonModule,
+		FormsModule,
+		UploaderModule,
+		TextBoxModule,
+		ButtonModule,
+	],
+	templateUrl: "./project-import.html",
+	styleUrl: "./project-import.scss",
 })
 export class ProjectImportComponent {
-  private router = inject(Router);
-  private projectService = inject(ProjectService);
-  
-  protected readonly selectedFile = signal<File | null>(null);
-  projectName = '';
-  description = '';
-  protected readonly importing = signal(false);
-  protected readonly error = signal<string | null>(null);
-  protected readonly success = signal(false);
+	private router = inject(Router);
+	private projectService = inject(ProjectService);
 
-  handleFileSelection(args: any) {
-    if (args.filesData && args.filesData.length > 0) {
-      this.selectedFile.set(args.filesData[0].rawFile);
-      if (!this.projectName && args.filesData[0].name) {
-        this.projectName = args.filesData[0].name.replace(/\.[^/.]+$/, '');
-      }
-    }
-  }
+	protected readonly selectedFile = signal<File | null>(null);
+	projectName = "";
+	description = "";
+	protected readonly importing = signal(false);
+	protected readonly error = signal<string | null>(null);
+	protected readonly success = signal(false);
 
-  formatFileSize(bytes: number): string {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
-    return Math.round(bytes / 1048576) + ' MB';
-  }
+	handleFileSelection(args: {
+		filesData?: Array<{ rawFile: File; name: string }>;
+	}) {
+		if (args.filesData && args.filesData.length > 0) {
+			this.selectedFile.set(args.filesData[0].rawFile);
+			if (!this.projectName && args.filesData[0].name) {
+				this.projectName = args.filesData[0].name.replace(/\.[^/.]+$/, "");
+			}
+		}
+	}
 
-  async importProject() {
-    if (!this.selectedFile() || !this.projectName) {
-      this.error.set('Please select a file and enter a project name');
-      return;
-    }
+	formatFileSize(bytes: number): string {
+		if (bytes < 1024) return `${bytes} B`;
+		if (bytes < 1048576) return `${Math.round(bytes / 1024)} KB`;
+		return `${Math.round(bytes / 1048576)} MB`;
+	}
 
-    this.importing.set(true);
-    this.error.set(null);
-    this.success.set(false);
+	async importProject() {
+		if (!this.selectedFile() || !this.projectName) {
+			this.error.set("Please select a file and enter a project name");
+			return;
+		}
 
-    try {
-      await this.projectService.importProject(
-        this.selectedFile()!,
-        this.projectName,
-        this.description || undefined
-      );
-      
-      this.success.set(true);
-      setTimeout(() => {
-        this.router.navigate(['/projects']);
-      }, 1500);
-    } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Failed to import project');
-    } finally {
-      this.importing.set(false);
-    }
-  }
+		this.importing.set(true);
+		this.error.set(null);
+		this.success.set(false);
 
-  navigateBack() {
-    this.router.navigate(['/projects']);
-  }
+		try {
+			const selectedFile = this.selectedFile();
+			if (selectedFile) {
+				await this.projectService.importProject(
+					selectedFile,
+					this.projectName,
+					this.description || undefined,
+				);
+			}
+
+			this.success.set(true);
+			setTimeout(() => {
+				this.router.navigate(["/projects"]);
+			}, 1500);
+		} catch (error) {
+			this.error.set(
+				error instanceof Error ? error.message : "Failed to import project",
+			);
+		} finally {
+			this.importing.set(false);
+		}
+	}
+
+	navigateBack() {
+		this.router.navigate(["/projects"]);
+	}
 }

@@ -1,6 +1,6 @@
 export interface FileUploadResponse {
-  fileName: string;
-  fileSize: number;
-  uploadedAt: Date | string;
-  url?: string;
+	fileName: string;
+	fileSize: number;
+	uploadedAt: Date | string;
+	url?: string;
 }

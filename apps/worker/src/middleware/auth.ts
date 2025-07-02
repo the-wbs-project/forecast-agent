@@ -1,11 +1,11 @@
-import type { Next, Context } from "hono";
+import type { Context, Next } from "hono";
 
 export async function authenticateUser(ctx: Context, next: Next) {
-    ctx.set('user', {
-        organizationId: '123'
-    });
+	ctx.set("user", {
+		organizationId: "123",
+	});
 
-    /*
+	/*
     const token = ctx.req.header('Authorization')?.replace('Bearer ', '');
     if (!token) {
         return ctx.json({
@@ -25,5 +25,5 @@ export async function authenticateUser(ctx: Context, next: Next) {
     ctx.set('user', tokenPayload);
     */
 
-    await next();
+	await next();
 }

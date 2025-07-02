@@ -1,5 +1,5 @@
-import type { DataDogService } from './data-dog.service';
-import type { Logger } from './logger.service';
+import type { DataDogService } from "./data-dog.service";
+import type { Logger } from "./logger.service";
 
 export class JobLogger implements Logger {
 	constructor(
@@ -11,7 +11,7 @@ export class JobLogger implements Logger {
 
 	trackEvent(
 		message: string,
-		status: 'Error' | 'Info' | 'Warn' | 'Notice',
+		status: "Error" | "Info" | "Warn" | "Notice",
 		data?: Record<string, unknown>,
 		ddsource?: string,
 		service?: string,
@@ -32,13 +32,13 @@ export class JobLogger implements Logger {
 			...this.basics({
 				data: {
 					data,
-					message: exception ? exception.message : 'No Exception Provided',
+					message: exception ? exception.message : "No Exception Provided",
 					stack: exception
 						? exception.stack?.toString()
-						: 'No Exception Provided',
+						: "No Exception Provided",
 				},
 			}),
-			status: 'Error',
+			status: "Error",
 			message: message,
 		});
 	}
@@ -64,15 +64,15 @@ export class JobLogger implements Logger {
 					},
 				},
 			}),
-			status: 'Info',
+			status: "Info",
 			message: `Dependency, ${method}, ${url} (${duration}ms)`,
 		});
 	}
 
 	private basics(
 		data?: Record<string, unknown> | undefined,
-		ddsource = 'worker',
-		service = 'forecast-agent-worker',
+		ddsource = "worker",
+		service = "forecast-agent-worker",
 	): Record<string, unknown> {
 		return {
 			ddsource,

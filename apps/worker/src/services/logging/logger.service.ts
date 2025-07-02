@@ -2,7 +2,7 @@ export interface Logger {
 	trackRequest(duration: number): void;
 	trackEvent(
 		message: string,
-		status: 'Error' | 'Info' | 'Warn' | 'Notice',
+		status: "Error" | "Info" | "Warn" | "Notice",
 		data?: Record<string, unknown>,
 		ddsource?: string,
 		service?: string,

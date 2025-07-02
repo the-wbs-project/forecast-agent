@@ -9,13 +9,13 @@ export class DataDogService {
 
 	async flush(): Promise<void> {
 		try {
-			await fetch('https://http-intake.logs.us5.datadoghq.com/api/v2/logs', {
-				method: 'POST',
+			await fetch("https://http-intake.logs.us5.datadoghq.com/api/v2/logs", {
+				method: "POST",
 				body: JSON.stringify(this.logs),
 				headers: {
-					Accept: 'application/json',
-					'Content-Type': 'application/json',
-					'DD-API-KEY': this.env.DATADOG_API_KEY,
+					Accept: "application/json",
+					"Content-Type": "application/json",
+					"DD-API-KEY": this.env.DATADOG_API_KEY,
 				},
 			});
 		} catch (e) {
