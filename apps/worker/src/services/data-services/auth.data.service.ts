@@ -1,4 +1,4 @@
-import { TokenPayload, type UserInfo } from "../dto";
+import type { UserInfo } from "../../dto";
 import type { KVService } from "./kv.service";
 
 export interface AuthDataService {

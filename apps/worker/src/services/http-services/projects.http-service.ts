@@ -22,7 +22,17 @@ export class ProjectsHttpService {
 			};
 
 			const search = query.search;
-			const organizationId = query.organizationId || user.organizationId;
+			if (!user) {
+				return ctx.json(
+					{
+						success: false,
+						message: "User not authenticated",
+					},
+					401,
+				);
+			}
+
+			const organizationId = query.organizationId || user.organizationId || "";
 
 			let result: PagedResult<ProjectDto>;
 
@@ -91,8 +101,18 @@ export class ProjectsHttpService {
 			const user = ctx.var.user;
 			const request = await ctx.req.json<CreateProjectRequest>();
 
+			if (!user) {
+				return ctx.json(
+					{
+						success: false,
+						message: "User not authenticated",
+					},
+					401,
+				);
+			}
+
 			if (!request.organizationId) {
-				request.organizationId = user.organizationId;
+				request.organizationId = user.organizationId || "";
 			}
 
 			if (!request.name || !request.organizationId) {

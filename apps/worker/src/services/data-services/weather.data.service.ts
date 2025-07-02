@@ -1,10 +1,10 @@
-import type { WeatherGuardApiService } from "../api-services/external-api.service";
 import type {
 	PagedResult,
 	PaginationQuery,
 	WeatherForecastDto,
 	WeatherRiskAnalysisDto,
-} from "../dto";
+} from "../../dto";
+import type { WeatherGuardApiService } from "../api-services/external-api.service";
 import type { KVService } from "./kv.service";
 
 export interface WeatherDataService {
@@ -97,16 +97,18 @@ export class KVWeatherDataService implements WeatherDataService {
 			// If no data in KV and API service available, try API fallback
 			if (analysisIds.length === 0 && this.apiService) {
 				try {
-					const apiAnalyses = await this.apiService.getWeatherAnalyses(
+					const apiAnalyses = (await this.apiService.getWeatherAnalyses(
 						projectId,
-						query,
-					);
+						query as Record<string, string>,
+					)) as PagedResult<WeatherRiskAnalysisDto>;
 					// Cache API results in KV
-					if (apiAnalyses && Array.isArray(apiAnalyses.items)) {
-						for (const analysis of apiAnalyses.items) {
+					if (apiAnalyses?.items && Array.isArray(apiAnalyses.items)) {
+						for (const analysis of apiAnalyses.items as WeatherRiskAnalysisDto[]) {
 							await this.createAnalysis(analysis);
 						}
-						analysisIds = apiAnalyses.items.map((a) => a.id);
+						analysisIds = (apiAnalyses.items as WeatherRiskAnalysisDto[]).map(
+							(a: WeatherRiskAnalysisDto) => a.id,
+						);
 					}
 				} catch (apiError) {
 					console.warn(
@@ -262,14 +264,18 @@ export class KVWeatherDataService implements WeatherDataService {
 		);
 
 		const validAnalyses = analyses.filter(
-			(a): a is WeatherRiskAnalysisDto => a !== null,
+			(a: WeatherRiskAnalysisDto | null): a is WeatherRiskAnalysisDto =>
+				a !== null,
 		);
 
 		// Filter by organization if provided (would need project lookup)
 		// For now, assuming organizationId filtering is handled at a higher level
 
 		// Sort by risk score descending
-		validAnalyses.sort((a, b) => b.riskScore - a.riskScore);
+		validAnalyses.sort(
+			(a: WeatherRiskAnalysisDto, b: WeatherRiskAnalysisDto) =>
+				b.riskScore - a.riskScore,
+		);
 
 		const totalCount = validAnalyses.length;
 		const totalPages = Math.ceil(totalCount / pageSize);

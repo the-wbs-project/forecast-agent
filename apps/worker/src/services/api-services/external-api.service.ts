@@ -97,7 +97,7 @@ export class WeatherGuardApiService extends HttpService {
 	// Project operations
 	async getProjects(params?: Record<string, unknown>) {
 		const queryParams = params
-			? `?${new URLSearchParams(params).toString()}`
+			? `?${new URLSearchParams(params as Record<string, string>).toString()}`
 			: "";
 		return this.get(`/api/projects${queryParams}`);
 	}
@@ -121,7 +121,7 @@ export class WeatherGuardApiService extends HttpService {
 	// Task operations
 	async getTasks(projectId: string, params?: Record<string, unknown>) {
 		const queryParams = params
-			? `?${new URLSearchParams(params).toString()}`
+			? `?${new URLSearchParams(params as Record<string, string>).toString()}`
 			: "";
 		return this.get(`/api/tasks/project/${projectId}${queryParams}`);
 	}
@@ -148,7 +148,7 @@ export class WeatherGuardApiService extends HttpService {
 		params?: Record<string, unknown>,
 	) {
 		const queryParams = params
-			? `?${new URLSearchParams(params).toString()}`
+			? `?${new URLSearchParams(params as Record<string, string>).toString()}`
 			: "";
 		return this.get(
 			`/api/weatherriskanalysis/project/${projectId}${queryParams}`,

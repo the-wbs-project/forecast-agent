@@ -1,4 +1,4 @@
-import type { KVMetadata } from "../dto";
+import type { KVMetadata } from "../../dto";
 
 export interface KVService {
 	get<T>(key: string): Promise<T | null>;

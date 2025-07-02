@@ -95,8 +95,8 @@ export class HttpLogger implements Logger {
 
 		return {
 			ddsource: "worker",
-			ddtags: `env:${this.ctx.env.DATADOG_ENV},app:forecast-agent`,
-			hostname: this.ctx.env.DATADOG_HOST,
+			ddtags: `env:${String(this.ctx.env.DATADOG_ENV || "development")},app:forecast-agent`,
+			hostname: String(this.ctx.env.DATADOG_HOST || "localhost"),
 			service: "forecast-agent-worker",
 			session_id: info.request.headers.get("dd_session_id"),
 			http: {

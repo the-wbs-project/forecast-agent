@@ -1,5 +1,5 @@
+import type { PagedResult, PaginationQuery, ProjectDto } from "../../dto";
 import type { WeatherGuardApiService } from "../api-services/external-api.service";
-import type { PagedResult, PaginationQuery, ProjectDto } from "../dto";
 import type { KVService } from "./kv.service";
 
 export interface ProjectDataService {
@@ -42,7 +42,7 @@ export class KVProjectDataService implements ProjectDataService {
 			if (!project && this.apiService) {
 				// Fallback to API
 				try {
-					project = await this.apiService.getProject(projectId);
+					project = (await this.apiService.getProject(projectId)) as ProjectDto;
 					if (project) {
 						// Cache in KV for future requests
 						await this.createProject(project);
@@ -90,7 +90,9 @@ export class KVProjectDataService implements ProjectDataService {
 			paginatedIds.map((id) => this.getProjectById(id)),
 		);
 
-		const validProjects = projects.filter((p): p is ProjectDto => p !== null);
+		const validProjects = projects.filter(
+			(p: ProjectDto | null): p is ProjectDto => p !== null,
+		);
 
 		return {
 			items: validProjects,
@@ -185,13 +187,13 @@ export class KVProjectDataService implements ProjectDataService {
 		});
 
 		const allProjects = (await Promise.all(projectPromises)).filter(
-			(p): p is ProjectDto => p !== null,
+			(p: ProjectDto | null): p is ProjectDto => p !== null,
 		);
 
 		// Filter by search query
 		const queryLower = query.toLowerCase();
 		const filteredProjects = allProjects.filter(
-			(project) =>
+			(project: ProjectDto) =>
 				project.name.toLowerCase().includes(queryLower) ||
 				project.description?.toLowerCase().includes(queryLower) ||
 				project.location?.toLowerCase().includes(queryLower),

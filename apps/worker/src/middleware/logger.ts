@@ -15,4 +15,6 @@ export async function ddLogger(
 	logger.trackRequest(duration);
 
 	ctx.executionCtx.waitUntil(ctx.var.datadog.flush());
+
+	return undefined;
 }

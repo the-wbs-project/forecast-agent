@@ -1,5 +1,5 @@
+import type { PagedResult, PaginationQuery, TaskDto } from "../../dto";
 import type { WeatherGuardApiService } from "../api-services/external-api.service";
-import type { PagedResult, PaginationQuery, TaskDto } from "../dto";
 import type { KVService } from "./kv.service";
 
 export interface TaskDataService {
@@ -49,7 +49,7 @@ export class KVTaskDataService implements TaskDataService {
 			if (!task && this.apiService) {
 				// Fallback to API
 				try {
-					task = await this.apiService.getTask(taskId);
+					task = (await this.apiService.getTask(taskId)) as TaskDto;
 					if (task) {
 						// Cache in KV for future requests
 						await this.createTask(task);
@@ -86,13 +86,16 @@ export class KVTaskDataService implements TaskDataService {
 			// If no data in KV and API service available, try API fallback
 			if (taskIds.length === 0 && this.apiService) {
 				try {
-					const apiTasks = await this.apiService.getTasks(projectId, query);
+					const apiTasks = (await this.apiService.getTasks(
+						projectId,
+						query as Record<string, string>,
+					)) as PagedResult<TaskDto>;
 					// Cache API results in KV
-					if (apiTasks && Array.isArray(apiTasks.items)) {
-						for (const task of apiTasks.items) {
+					if (apiTasks?.items && Array.isArray(apiTasks.items)) {
+						for (const task of apiTasks.items as TaskDto[]) {
 							await this.createTask(task);
 						}
-						taskIds = apiTasks.items.map((t) => t.id);
+						taskIds = (apiTasks.items as TaskDto[]).map((t: TaskDto) => t.id);
 					}
 				} catch (apiError) {
 					console.warn(
@@ -111,7 +114,9 @@ export class KVTaskDataService implements TaskDataService {
 				paginatedIds.map((id) => this.getTaskById(id)),
 			);
 
-			const validTasks = tasks.filter((t): t is TaskDto => t !== null);
+			const validTasks = tasks.filter(
+				(t: TaskDto | null): t is TaskDto => t !== null,
+			);
 
 			return {
 				items: validTasks,
@@ -150,7 +155,9 @@ export class KVTaskDataService implements TaskDataService {
 			paginatedIds.map((id) => this.getTaskById(id)),
 		);
 
-		const validTasks = tasks.filter((t): t is TaskDto => t !== null);
+		const validTasks = tasks.filter(
+			(t: TaskDto | null): t is TaskDto => t !== null,
+		);
 
 		return {
 			items: validTasks,
@@ -273,7 +280,7 @@ export class KVTaskDataService implements TaskDataService {
 			pageNumber: 1,
 			pageSize: 1000,
 		});
-		return projectTasks.items.filter((task) => task.weatherSensitive);
+		return projectTasks.items.filter((task: TaskDto) => task.weatherSensitive);
 	}
 
 	private async clearTaskCache(taskId: string, task?: TaskDto): Promise<void> {

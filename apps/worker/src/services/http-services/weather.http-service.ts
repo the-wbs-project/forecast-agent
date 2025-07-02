@@ -68,11 +68,23 @@ export class WeatherHttpService {
 					longitude,
 					days,
 				);
-				// Cache for 1 hour
-				await ctx.var.weatherService.storeForecastData(
-					cacheKey,
-					forecast,
-					3600,
+				if (forecast) {
+					// Cache for 1 hour
+					await ctx.var.weatherService.storeForecastData(
+						cacheKey,
+						forecast,
+						3600,
+					);
+				}
+			}
+
+			if (!forecast) {
+				return ctx.json(
+					{
+						success: false,
+						message: "Unable to retrieve weather forecast",
+					},
+					500,
 				);
 			}
 
